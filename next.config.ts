@@ -22,6 +22,7 @@ export default withBundleAnalyzer(() => {
     experimental: {
       taint: true,
     },
+    
     productionBrowserSourceMaps: true,
   };
   return nextConfig;

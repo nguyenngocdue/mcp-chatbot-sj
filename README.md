@@ -86,3 +86,4 @@ ANALYZE=true pnpm run build
 
 # 4. Start a local PostgreSQL instance
 pnpm docker:pg
+pnpm db:reset

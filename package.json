@@ -10,7 +10,9 @@
     "build:local": "cross-env NO_HTTPS='1' tsc -b && next build",
     "analyze": "cross-env ANALYZE=true next build",
     "start": "next start",
-    "docker:pg": "docker run --name mcp-chatbot-pg -e POSTGRES_PASSWORD=your_password -e POSTGRES_USER=your_username -e POSTGRES_DB=your_database_name -p 5432:5432 -d postgres"
+    "docker:pg": "docker run --name mcp-chatbot-pg -e POSTGRES_PASSWORD=adminsj -e POSTGRES_USER=adminsj -e POSTGRES_DB=database_sj -p 5432:5432 -d postgres",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:reset": "drizzle-kit drop && drizzle-kit push"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.12",
@@ -52,6 +54,7 @@
     "@types/json-schema": "^7.0.15",
     "@types/node": "^20.19.11",
     "@types/react": "19.1.12",
+    "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }

@@ -16,8 +16,13 @@ import {
 import { isNotNull } from "drizzle-orm";
 import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
 import { UIMessage } from "ai";
+
 import { ChatMetadata } from "app-types/chat";
 
+/**
+ * Table: chat_thread
+ * Purpose: Stores chat conversation threads. Each thread represents a conversation session, with a title, the user who owns it, and the creation timestamp.
+ *  */
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   title: text("title").notNull(),
@@ -27,6 +32,12 @@ export const ChatThreadSchema = pgTable("chat_thread", {
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/**
+ * Table: chat_message
+ * Purpose: Stores individual chat messages belonging to a conversation thread.
+ * Each message includes its role (user, assistant, etc.), content parts, optional metadata, and creation timestamp.
+ * Linked to a chat_thread by threadId.
+ */
 export const ChatMessageSchema = pgTable("chat_message", {
   id: text("id").primaryKey().notNull(),
   threadId: uuid("thread_id")
@@ -37,7 +48,12 @@ export const ChatMessageSchema = pgTable("chat_message", {
   metadata: json("metadata").$type<ChatMetadata>(),
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
-
+/**
+ * Table: agent
+ * Purpose: Stores information about AI agents created by users.
+ * Each agent has a name, description, icon, instructions, visibility, and is linked to a user.
+ * Used to manage and customize different AI assistants per user.
+ */
 export const AgentSchema = pgTable("agent", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
@@ -56,6 +72,11 @@ export const AgentSchema = pgTable("agent", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/**
+ * Table: bookmark
+ * Purpose: Stores bookmarks created by users for quick access to agents or workflows.
+ * Each bookmark links a user to an item (agent or workflow), with unique and indexed constraints for efficient lookup and management.
+ */
 export const BookmarkSchema = pgTable(
   "bookmark",
   {
@@ -77,7 +98,11 @@ export const BookmarkSchema = pgTable(
     index("bookmark_item_idx").on(table.itemId, table.itemType),
   ],
 );
-
+/**
+ * Table: mcp_server
+ * Purpose: Stores configuration and metadata for Model Context Protocol (MCP) servers integrated by users.
+ * Each record includes the server's name, configuration, enabled status, and timestamps for creation and updates.
+ */
 export const McpServerSchema = pgTable("mcp_server", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
@@ -86,7 +111,11 @@ export const McpServerSchema = pgTable("mcp_server", {
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
-
+/**
+ * Table: user
+ * Purpose: Stores user account information including name, email, password, profile image, preferences, and timestamps.
+ * Used for authentication, authorization, and user profile management.
+ */
 export const UserSchema = pgTable("user", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
@@ -98,7 +127,12 @@ export const UserSchema = pgTable("user", {
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
-
+/**
+ * Table: session
+ * Purpose: Stores user session data for authentication and tracking.
+ * Each session includes a unique token, expiration, user reference, IP address, user agent, and timestamps.
+ * Used for login sessions and session management.
+ */
 export const SessionSchema = pgTable("session", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -111,7 +145,11 @@ export const SessionSchema = pgTable("session", {
     .notNull()
     .references(() => UserSchema.id, { onDelete: "cascade" }),
 });
-
+/**
+ * Table: account
+ * Purpose: Stores linked authentication accounts for users, including OAuth provider info, tokens, and expiration.
+ * Used for social login, multi-provider authentication, and account management.
+ */
 export const AccountSchema = pgTable("account", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   accountId: text("account_id").notNull(),
@@ -129,7 +167,12 @@ export const AccountSchema = pgTable("account", {
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
-
+/**
+ * Table: verification
+ * Purpose: Stores verification codes and tokens for user actions such as email verification,
+ * password reset, or multi-factor authentication.
+ * Includes identifier, value, expiration, and timestamps.
+ */
 export const VerificationSchema = pgTable("verification", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   identifier: text("identifier").notNull(),
@@ -142,8 +185,11 @@ export const VerificationSchema = pgTable("verification", {
     () => /* @__PURE__ */ new Date(),
   ),
 });
-
-// Tool customization table for per-user additional instructions
+/**
+ * Table: mcp_server_tool_custom_instructions
+ * Purpose: Stores per-user custom instructions (prompts) for specific tools on a given MCP server.
+ * Allows users to personalize tool behavior and instructions for each tool/server combination.
+ */
 export const McpToolCustomizationSchema = pgTable(
   "mcp_server_tool_custom_instructions",
   {
@@ -165,7 +211,11 @@ export const McpToolCustomizationSchema = pgTable(
   },
   (table) => [unique().on(table.userId, table.toolName, table.mcpServerId)],
 );
-
+/**
+ * Table: mcp_server_custom_instructions
+ * Purpose: Stores per-user custom instructions (prompts) for an entire MCP server.
+ * Allows users to personalize the behavior of all tools on a specific server with a single prompt.
+ */
 export const McpServerCustomizationSchema = pgTable(
   "mcp_server_custom_instructions",
   {
@@ -186,7 +236,11 @@ export const McpServerCustomizationSchema = pgTable(
   },
   (table) => [unique().on(table.userId, table.mcpServerId)],
 );
-
+/**
+ * Table: workflow
+ * Purpose: Stores user-created workflows, including metadata, version, icon, description, publication status, visibility, and ownership.
+ * Used to manage and organize automated or multi-step processes.
+ */
 export const WorkflowSchema = pgTable("workflow", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   version: text("version").notNull().default("0.1.0"),
@@ -206,6 +260,12 @@ export const WorkflowSchema = pgTable("workflow", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/**
+ * Table: workflow_node
+ * Purpose: Stores nodes within a workflow, representing individual steps, actions, or components.
+ * Each node includes its type (kind), name, description, configuration, and is linked to a workflow.
+ * Used to define the structure and behavior of automated or multi-step processes.
+ */
 export const WorkflowNodeDataSchema = pgTable(
   "workflow_node",
   {
@@ -231,6 +291,12 @@ export const WorkflowNodeDataSchema = pgTable(
   (t) => [index("workflow_node_kind_idx").on(t.kind)],
 );
 
+/**
+ * Table: workflow_edge
+ * Purpose: Stores edges (connections) between nodes in a workflow, representing the flow or relationship between steps.
+ * Each edge links a source node to a target node within a workflow and can include UI configuration.
+ * Used to define the structure and execution order of workflow processes.
+ */
 export const WorkflowEdgeSchema = pgTable("workflow_edge", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   version: text("version").notNull().default("0.1.0"),
@@ -247,6 +313,12 @@ export const WorkflowEdgeSchema = pgTable("workflow_edge", {
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/**
+ * Table: archive
+ * Purpose: Stores user-created archives for organizing and grouping related items (such as workflows or agents).
+ * Each archive has a name, description, owner, and timestamps for creation and updates.
+ * Used to help users manage and categorize their saved content.
+ */
 export const ArchiveSchema = pgTable("archive", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
@@ -258,6 +330,12 @@ export const ArchiveSchema = pgTable("archive", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/**
+ * Table: archive_item
+ * Purpose: Stores individual items that belong to a user-created archive.
+ * Each record links an item (such as a workflow or agent) to an archive and a user, with a timestamp for when it was added.
+ * Used to organize and manage the contents of user archives.
+ */
 export const ArchiveItemSchema = pgTable(
   "archive_item",
   {
@@ -274,6 +352,11 @@ export const ArchiveItemSchema = pgTable(
   (t) => [index("archive_item_item_id_idx").on(t.itemId)],
 );
 
+/**
+ * Table: mcp_oauth_session
+ * Purpose: Stores OAuth session data for MCP server integrations, including server reference, client info, tokens, code verifier, and state.
+ * Used to manage and track OAuth authentication flows and sessions for secure access to external MCP servers.
+ */
 export const McpOAuthSessionSchema = pgTable(
   "mcp_oauth_session",
   {
