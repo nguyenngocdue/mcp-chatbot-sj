@@ -1,11 +1,15 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
+
 
 const BUILD_OUTPUT = process.env.NEXT_STANDALONE_OUTPUT
   ? "standalone"
   : undefined;
 
-export default () => {
+export default withBundleAnalyzer(() => {
   const nextConfig: NextConfig = {
     output: BUILD_OUTPUT,
     cleanDistDir: true,
@@ -18,7 +22,7 @@ export default () => {
     experimental: {
       taint: true,
     },
+    productionBrowserSourceMaps: true,
   };
-  const withNextIntl = createNextIntlPlugin();
-  return withNextIntl(nextConfig);
-};
+  return nextConfig;
+});

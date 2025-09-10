@@ -4,16 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 8931",
-    "dev:server": "tsx src/mcp-server.ts",
-    "dev:server-stream": "tsx src/api-stream.ts",
-    "dev:api": "tsx watch src/api.ts ",
-    "start": "node dist/api.js",
-    "dev:stdio": "tsx src/mcp-stdio.ts",
-    "dev:http": "node dist/mcp-http.js",
-    "start:http": "node dist/mcp-http.js",
-    "start:stdio": "node dist/mcp-stdio.js",
+    "server:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector npm run dev:http",
     "build": "tsc -b && next build",
-    "server:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector npm run dev:http"
+    "analyze:open": "cross-env ANALYZE=true next build && xdg-open .next/analyze/client.html",
+    "build:local": "cross-env NO_HTTPS='1' tsc -b && next build",
+    "analyze": "cross-env ANALYZE=true next build",
+    "start": "next start",
+    "docker:pg": "docker run --name mcp-chatbot-pg -e POSTGRES_PASSWORD=your_password -e POSTGRES_USER=your_username -e POSTGRES_DB=your_database_name -p 5432:5432 -d postgres"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.12",
@@ -30,6 +27,7 @@
     "clsx": "^2.1.1",
     "consola": "^3.4.2",
     "cors": "^2.8.5",
+    "cross-env": "^10.0.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.6.1",
     "drizzle-orm": "^0.44.5",
@@ -37,7 +35,6 @@
     "json-schema": "^0.4.0",
     "logger": "^0.0.1",
     "next": "^15.5.2",
-    "next-intl": "^4.3.6",
     "ollama-ai-provider-v2": "^1.3.0",
     "openai": "^5.15.0",
     "pg": "^8.16.3",
@@ -48,6 +45,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.2",
     "@types/cors": "^2.8.19",
     "@types/date-fns": "^2.6.3",
     "@types/express": "^4.17.23",
