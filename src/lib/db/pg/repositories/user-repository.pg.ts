@@ -4,6 +4,20 @@ import { UserSchema } from "../schema.pg";
 import { eq } from "drizzle-orm";
 
 export const pgUserRepository: UserRepository = {
+  insertUser: async (user: { id: string; name: string; email: string; image: string | null }) => {
+    const [result] = await db
+      .insert(UserSchema)
+      .values({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return result as User;
+  },
   existsByEmail: async (email: string): Promise<boolean> => {
     const result = await db
       .select()

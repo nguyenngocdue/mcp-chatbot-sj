@@ -216,6 +216,11 @@ export const pgChatRepository: ChatRepository = {
     );
   },
 
+    /**
+   * Delete all threads of a user that are NOT archived.
+   * This will remove all threads for the given user that do not have an archive record.
+   * Used for bulk cleanup of unarchived threads.
+   */
   deleteUnarchivedThreads: async (userId: string): Promise<void> => {
     const unarchivedThreadIds = await db
       .select({ id: ChatThreadSchema.id })

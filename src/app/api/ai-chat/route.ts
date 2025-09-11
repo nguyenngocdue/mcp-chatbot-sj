@@ -1,4 +1,3 @@
-// src/app/api/ai-chat/route.ts
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
@@ -8,34 +7,27 @@ import {
   stepCountIs,
   streamText,
 } from 'ai';
-import { chatApiSchemaRequestBodySchema } from '../../../types/chat';
+import { chatApiSchemaRequestBodySchema, ChatMetadata } from '../../../types/chat';
 import { withCors } from '../../../utils/cors';
 import { customModelProvider, isToolCallUnsupportedModel } from '../../../lib/ai/models';
 import { errorIf, safe } from 'ts-safe';
-import { loadAppDefaultTools, mergeSystemPrompt } from '../chat/shared.chat';
+import { convertToSavePart, loadAppDefaultTools, mergeSystemPrompt } from '../chat/shared.chat';
 import { buildMcpServerCustomizationsSystemPrompt, buildToolCallUnsupportedModelSystemPrompt, buildUserSystemPrompt } from 'lib/ai/prompts';
+import { chatRepository, userRepository } from 'lib/db/repository';
+import { SESSION } from '@/app/globals';
 
 export const runtime = 'nodejs';
+// global value (mock)
+const agent = { id: "default-agent-id" };
 
-
-
-// Helper function, not exported
-function hasMarkdownTable(parts: any[]): boolean {
-  // Check if any text part contains a markdown table (at least one line with | ... | ... |)
-  // The regex looks for a line break followed by a line with at least two columns separated by |
-  return parts.some(
-    (p) => p.type === "text" && /\n\s*\|.*\|.*\n/.test(p.text)
-  );
-}
 
 export async function POST(req: Request) {
   try {
     const json = await req.json().catch(() => ({}));
     console.log('[DEBUG] raw body:', json);
 
-    // ✅ Parse theo schema (chỉ có `message`, không có `messages[]`)
     const {
-      id,
+      id, // using this one for threadId
       message,
       chatModel,
       toolChoice,
@@ -44,13 +36,7 @@ export async function POST(req: Request) {
       mentions = [],
     } = chatApiSchemaRequestBodySchema.parse(json);
 
-    // console.log('[DEBUG] id:', id);
-    // console.log('[DEBUG] chatModel:', chatModel);
-    // console.log('[DEBUG] toolChoice:', toolChoice);
-    // console.log('[DEBUG] allowedAppDefaultToolkit:', allowedAppDefaultToolkit);
-    // console.log('[DEBUG] allowedMcpServers:', allowedMcpServers);
-    // console.log('[DEBUG] mentions:', mentions);
-    // console.log('[DEBUG] message:', message);
+
 
     // Vì schema chỉ có 1 message → dùng mảng [message] cho model
     const allMessages = [message];
@@ -58,7 +44,43 @@ export async function POST(req: Request) {
     const supportToolCall = !isToolCallUnsupportedModel(model);
     const isToolCallAllowed = supportToolCall && (toolChoice != "none" || mentions.length > 0);
     // console.log('[DEBUG] model:', model);
-    console.log('[DEBUG] supportToolCall:', supportToolCall);
+    // console.log('[DEBUG] supportToolCall:', supportToolCall);
+
+    // STEP 0: Ensure user exists (create if not)
+    const userId = SESSION.user.id;
+    let user = await userRepository.findById(userId);
+    if (!user) {
+      // You can customize name/email as needed
+      if (typeof userRepository.insertUser === 'function') {
+        user = await userRepository.insertUser({
+          id: userId,
+          name: 'Mock User',
+          email: `mockuser_${userId}@example.com`,
+          image: null,
+        });
+      } else {
+        throw new Error('userRepository.insertUser is not implemented');
+      }
+    }
+
+    // STEP 1: Save value to chat_threads
+    let thread = await chatRepository.selectThreadDetails(id);
+    if (!thread) {
+      const newThread = await chatRepository.insertThread({
+        id,
+        title: "Create a New Thread",
+        userId: SESSION.user.id,
+      });
+      thread = await chatRepository.selectThreadDetails(newThread.id);
+    }
+
+
+    const metadata: ChatMetadata = {
+      agentId: agent?.id,
+      toolChoice: toolChoice,
+      toolCount: 0,
+      chatModel: chatModel,
+    };
 
 
 
@@ -70,7 +92,7 @@ export async function POST(req: Request) {
         // logger.info(
         //   `mcp-server count: ${mcpClients.length}, mcp-tools count :${Object.keys(mcpTools).length}`,
         // );
-         const APP_DEFAULT_TOOLS = await safe()
+        const APP_DEFAULT_TOOLS = await safe()
           .map(errorIf(() => !isToolCallAllowed && "Not allowed"))
           .map(() =>
             loadAppDefaultTools({
@@ -80,13 +102,13 @@ export async function POST(req: Request) {
           )
           .orElse({});
 
-             const systemPrompt = mergeSystemPrompt(
-              buildUserSystemPrompt(),
-              !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
-            );
+        const systemPrompt = mergeSystemPrompt(
+          buildUserSystemPrompt(),
+          !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
+        );
 
 
-          const vercelAITools = safe()
+        const vercelAITools = safe()
           .map((t) => {
             return {
               ...APP_DEFAULT_TOOLS, // APP_DEFAULT_TOOLS Not Supported Manual
@@ -94,8 +116,8 @@ export async function POST(req: Request) {
           })
           .unwrap();
 
-          console.log('[DEBUG] APP_DEFAULT_TOOLS: ' , APP_DEFAULT_TOOLS)
-          console.log('[DEBUG] systemPrompt: ' , systemPrompt)
+        // console.log('[DEBUG] APP_DEFAULT_TOOLS: ' , APP_DEFAULT_TOOLS)
+        // console.log('[DEBUG] systemPrompt: ' , systemPrompt)
 
 
         const result = await streamText({
@@ -118,23 +140,46 @@ export async function POST(req: Request) {
             messageMetadata: ({ part }) =>
               part.type === 'finish'
                 ? {
-                    usage: part.totalUsage,
-                    chatModel: chatModel ?? { provider: 'openai', model: 'gpt-4o-mini' },
-                    toolChoice,
-                    mentionsCount: mentions.length,
-                  }
+                  usage: part.totalUsage,
+                  chatModel: chatModel ?? { provider: 'openai', model: 'gpt-4o-mini' },
+                  toolChoice,
+                  mentionsCount: mentions.length,
+                }
                 : undefined,
           })
         );
       },
       onFinish: async ({ responseMessage }) => {
-        // Nếu có markdown table thì loại bỏ các tool part để tránh lặp UI
-        if (responseMessage && Array.isArray(responseMessage.parts) && hasMarkdownTable(responseMessage.parts)) {
-          responseMessage.parts = responseMessage.parts.filter(
-            (p: any) => p.type !== 'tool'
-          );
-        }
-        console.log("[DEBUG] responseMessage:", responseMessage)
+        console.log("[DEBUG] responseMessage:", responseMessage);
+        console.log("[DEBUG] message:", message);
+          if (!thread || !thread.id) {
+            console.error("Thread or thread.id is missing. Cannot upsert message.");
+            return;
+          }
+          // Case 1: The response message is an update to the user's own message (same id), so only one message is saved or updated.
+          if (responseMessage.id == message.id) {
+            await chatRepository.upsertMessage({
+              threadId: thread.id,
+              ...responseMessage,
+              parts: responseMessage.parts.map(convertToSavePart),
+              metadata,
+            });
+            // Case 2: The response message is a new assistant message (different id), so save both the user's message and the assistant's response as separate records.
+          } else {
+            await chatRepository.upsertMessage({
+              threadId: thread.id,
+              role: message.role,
+              parts: message.parts.map(convertToSavePart),
+              id: message.id,
+            });
+            await chatRepository.upsertMessage({
+              threadId: thread.id,
+              role: responseMessage.role,
+              id: responseMessage.id,
+              parts: responseMessage.parts.map(convertToSavePart),
+              metadata,
+            });
+          }
       }
     });
 
