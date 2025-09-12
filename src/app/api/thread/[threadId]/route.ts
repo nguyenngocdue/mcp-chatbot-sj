@@ -5,10 +5,10 @@ import { OPTIONS, SESSION, jsonHeaders } from '@/app/globals';
 export { OPTIONS };
 
 export async function GET(
-  request: Request,
-  context: { params: { threadId: string } }
+  req: Request,
+  contextPromise: Promise<{ params: { threadId: string } }>
 ) {
-  const { params } = context;
+  const { params } = await contextPromise;
   const threadId = params.threadId;
 
   try {
