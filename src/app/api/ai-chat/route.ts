@@ -1,4 +1,3 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -12,14 +11,12 @@ import { withCors } from '../../../utils/cors';
 import { customModelProvider, isToolCallUnsupportedModel } from '../../../lib/ai/models';
 import { errorIf, safe } from 'ts-safe';
 import { convertToSavePart, loadAppDefaultTools, mergeSystemPrompt } from '../chat/shared.chat';
-import { buildMcpServerCustomizationsSystemPrompt, buildToolCallUnsupportedModelSystemPrompt, buildUserSystemPrompt } from 'lib/ai/prompts';
+import { buildToolCallUnsupportedModelSystemPrompt, buildUserSystemPrompt } from 'lib/ai/prompts';
 import { chatRepository, userRepository } from 'lib/db/repository';
-import { SESSION } from '@/app/globals';
+import { AGENT, SESSION } from '@/app/globals';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export const runtime = 'nodejs';
-// global value (mock)
-const agent = { id: "default-agent-id" };
-
 
 export async function POST(req: Request) {
   try {
@@ -38,12 +35,19 @@ export async function POST(req: Request) {
 
 
 
-    // Vì schema chỉ có 1 message → dùng mảng [message] cho model
+    // Because the schema only has 1 message → use [message] array for the model
     const allMessages = [message];
-    const model = customModelProvider.getModel(chatModel);
+    // const model = customModelProvider.getModel(chatModel);
+
+    // obsolete, will be removed in future
+    const openaiWithKey = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || (chatModel && chatModel.openAiKey ? chatModel.openAiKey : '') });
+    const model = openaiWithKey("gpt-4.1-mini");
+    console.log('[DEBUG] model:', model);
+
+
+
     const supportToolCall = !isToolCallUnsupportedModel(model);
     const isToolCallAllowed = supportToolCall && (toolChoice != "none" || mentions.length > 0);
-    // console.log('[DEBUG] model:', model);
     // console.log('[DEBUG] supportToolCall:', supportToolCall);
 
     // STEP 0: Ensure user exists (create if not)
@@ -76,7 +80,7 @@ export async function POST(req: Request) {
 
 
     const metadata: ChatMetadata = {
-      agentId: agent?.id,
+      agentId: AGENT?.id,
       toolChoice: toolChoice,
       toolCount: 0,
       chatModel: chatModel,
@@ -152,34 +156,34 @@ export async function POST(req: Request) {
       onFinish: async ({ responseMessage }) => {
         console.log("[DEBUG] responseMessage:", responseMessage);
         console.log("[DEBUG] message:", message);
-          if (!thread || !thread.id) {
-            console.error("Thread or thread.id is missing. Cannot upsert message.");
-            return;
-          }
-          // Case 1: The response message is an update to the user's own message (same id), so only one message is saved or updated.
-          if (responseMessage.id == message.id) {
-            await chatRepository.upsertMessage({
-              threadId: thread.id,
-              ...responseMessage,
-              parts: responseMessage.parts.map(convertToSavePart),
-              metadata,
-            });
-            // Case 2: The response message is a new assistant message (different id), so save both the user's message and the assistant's response as separate records.
-          } else {
-            await chatRepository.upsertMessage({
-              threadId: thread.id,
-              role: message.role,
-              parts: message.parts.map(convertToSavePart),
-              id: message.id,
-            });
-            await chatRepository.upsertMessage({
-              threadId: thread.id,
-              role: responseMessage.role,
-              id: responseMessage.id,
-              parts: responseMessage.parts.map(convertToSavePart),
-              metadata,
-            });
-          }
+        if (!thread || !thread.id) {
+          console.error("Thread or thread.id is missing. Cannot upsert message.");
+          return;
+        }
+        // Case 1: The response message is an update to the user's own message (same id), so only one message is saved or updated.
+        if (responseMessage.id == message.id) {
+          await chatRepository.upsertMessage({
+            threadId: thread.id,
+            ...responseMessage,
+            parts: responseMessage.parts.map(convertToSavePart),
+            metadata,
+          });
+          // Case 2: The response message is a new assistant message (different id), so save both the user's message and the assistant's response as separate records.
+        } else {
+          await chatRepository.upsertMessage({
+            threadId: thread.id,
+            role: message.role,
+            parts: message.parts.map(convertToSavePart),
+            id: message.id,
+          });
+          await chatRepository.upsertMessage({
+            threadId: thread.id,
+            role: responseMessage.role,
+            id: responseMessage.id,
+            parts: responseMessage.parts.map(convertToSavePart),
+            metadata,
+          });
+        }
       }
     });
 

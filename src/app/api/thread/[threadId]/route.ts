@@ -6,10 +6,12 @@ export { OPTIONS };
 
 export async function GET(
   req: Request,
-  { params }: { params: { threadId: string } }
+  contextPromise: Promise<{ params: { threadId: string } }>
 ) {
+  const { params } = await contextPromise;
+  const threadId = params.threadId;
+
   try {
-    const threadId = params.threadId;
     if (!threadId) {
       return new Response(JSON.stringify({ error: 'Missing threadId' }), {
         status: 400,

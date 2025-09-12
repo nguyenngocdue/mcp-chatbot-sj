@@ -16,3 +16,5 @@ export function jsonHeaders() {
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: jsonHeaders() });
 }
+
+export const AGENT = { id: "default-agent-id" };
