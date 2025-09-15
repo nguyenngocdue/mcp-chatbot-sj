@@ -25,7 +25,6 @@ pnpm dev
 After running the above command, the server will start at:
 http://localhost:8931
 (or the port you set in the `.env` file)
-```
 
 
 
