@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       apiKey = chatModel.apiKey;
     }
     const openaiWithKey = createOpenAI({ apiKey: apiKey || '' });
-    const model = openaiWithKey((chatModel && chatModel.model) ? chatModel.model : "gpt-4.1-mini");
+    const model = openaiWithKey((chatModel && chatModel.model) ? chatModel.model : ( process.env.OPENAI_MODEL ||  "gpt-4.1-mini"));
     console.log('[apiKey] ' , apiKey)
 
     // for set other model
