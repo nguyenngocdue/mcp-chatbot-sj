@@ -53,11 +53,11 @@ export const pgChatRepository: ChatRepository = {
 
     const messages = await pgChatRepository.selectMessagesByThreadId(id);
     return {
-      id: thread.chat_thread.id,
-      title: thread.chat_thread.title,
-      userId: thread.chat_thread.userId,
-      createdAt: thread.chat_thread.createdAt,
-      userPreferences: thread.user?.preferences ?? undefined,
+      id: thread.chat_threads.id,
+      title: thread.chat_threads.title,
+      userId: thread.chat_threads.userId,
+      createdAt: thread.chat_threads.createdAt,
+      userPreferences: thread.users?.preferences ?? undefined,
       messages,
     };
   },

@@ -52,8 +52,11 @@ const staticModels = {
     "qwen3-8b:free": openrouter("qwen/qwen3-8b:free"),
     "qwen3-14b:free": openrouter("qwen/qwen3-14b:free"),
     "qwen3-coder:free": openrouter("qwen/qwen3-coder:free"),
+
     "deepseek-r1:free": openrouter("deepseek/deepseek-r1-0528:free"),
     "deepseek-v3:free": openrouter("deepseek/deepseek-chat-v3-0324:free"),
+    "deepseek-r1-0528-qwen3-8b:free": openrouter("deepseek/deepseek-r1-0528-qwen3-8b:free"),
+    
     "gemini-2.0-flash-exp:free": openrouter("google/gemini-2.0-flash-exp:free"),
   },
 };

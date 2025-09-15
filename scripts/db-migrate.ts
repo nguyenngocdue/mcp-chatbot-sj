@@ -1,7 +1,7 @@
 import { colorize } from "consola/utils";
 import "load-env";
 
-const { runMigrate } = await import("../lib/db/pg/migrate.pg.ts");
+const { runMigrate } = await import("../src/lib/db/pg/migrate.pg.ts");
 
 await runMigrate()
   .then(() => {

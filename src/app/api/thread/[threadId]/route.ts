@@ -5,11 +5,11 @@ import { OPTIONS, SESSION, jsonHeaders } from '@/app/globals';
 export { OPTIONS };
 
 export async function GET(
-  req: Request,
-  contextPromise: Promise<{ params: { threadId: string } }>
+  request: Request,
+  { params }: { params: Promise<{ threadId: string }> }
 ) {
-  const { params } = await contextPromise;
-  const threadId = params.threadId;
+  const {threadId} = await params;
+  console.log("threadId", threadId)
 
   try {
     if (!threadId) {

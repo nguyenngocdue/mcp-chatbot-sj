@@ -91,7 +91,7 @@ export const chatApiSchemaRequestBodySchema = z.object({
     .object({
       provider: z.string(),
       model: z.string(),
-      openAiKey: z.string(), // obsolete, will be removed in future
+      apiKey: z.string(), // obsolete, will be removed in future
     })
     .optional(),
   toolChoice: z.enum(["auto", "none", "manual"]),

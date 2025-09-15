@@ -1,3 +1,4 @@
+import { staticModelRepository } from '@/lib/db/pg/repositories/static-model-repository.pg';
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -34,16 +35,30 @@ export async function POST(req: Request) {
     } = chatApiSchemaRequestBodySchema.parse(json);
 
 
-
     // Because the schema only has 1 message → use [message] array for the model
     const allMessages = [message];
+
+    // set OPENAI-Key from FE
+    // Lấy apiKey từ static_models nếu không truyền trực tiếp
+    let apiKey = process.env.OPENAI_API_KEY;
+    // Ưu tiên lấy apiKey từ static_models theo tên model (chatModel.model)
+    if (!apiKey && chatModel && chatModel.model) {
+      apiKey = await getApiKeyFromStaticModel(chatModel.model, SESSION.user.id);
+    }
+    if (!apiKey && chatModel && chatModel.apiKey) {
+      apiKey = chatModel.apiKey;
+    }
+    const openaiWithKey = createOpenAI({ apiKey: apiKey || '' });
+    const model = openaiWithKey((chatModel && chatModel.model) ? chatModel.model : "gpt-4.1-mini");
+    console.log('[apiKey] ' , apiKey)
+
+    // for set other model
     // const model = customModelProvider.getModel(chatModel);
-
-    // obsolete, will be removed in future
-    const openaiWithKey = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || (chatModel && chatModel.openAiKey ? chatModel.openAiKey : '') });
-    const model = openaiWithKey("gpt-4.1-mini");
-    console.log('[DEBUG] model:', model);
-
+    // const model = customModelProvider.getModel({
+    //   provider: 'openRouter',
+    //   model: 'deepseek-r1-0528-qwen3-8b:free',
+    // });
+    // console.log('[DEBUG] model:', model);
 
 
     const supportToolCall = !isToolCallUnsupportedModel(model);
@@ -206,4 +221,11 @@ export async function GET() {
     status: 200,
     headers: withCors({ 'content-type': 'application/json' }),
   });
+}
+
+// Helper to get apiKey from static_models by model name and userId
+async function getApiKeyFromStaticModel(modelName: string, userId: string): Promise<string | undefined> {
+  if (!modelName || !userId) return undefined;
+  const model = await staticModelRepository.getByName(modelName, userId);
+  return model?.apiKey;
 }

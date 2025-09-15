@@ -23,7 +23,7 @@ import { ChatMetadata } from "app-types/chat";
  * Table: chat_thread
  * Purpose: Stores chat conversation threads. Each thread represents a conversation session, with a title, the user who owns it, and the creation timestamp.
  *  */
-export const ChatThreadSchema = pgTable("chat_thread", {
+export const ChatThreadSchema = pgTable("chat_threads", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   title: text("title").notNull(),
   userId: uuid("user_id")
@@ -38,7 +38,7 @@ export const ChatThreadSchema = pgTable("chat_thread", {
  * Each message includes its role (user, assistant, etc.), content parts, optional metadata, and creation timestamp.
  * Linked to a chat_thread by threadId.
  */
-export const ChatMessageSchema = pgTable("chat_message", {
+export const ChatMessageSchema = pgTable("chat_messages", {
   id: text("id").primaryKey().notNull(),
   threadId: uuid("thread_id")
     .notNull()
@@ -54,7 +54,7 @@ export const ChatMessageSchema = pgTable("chat_message", {
  * Each agent has a name, description, icon, instructions, visibility, and is linked to a user.
  * Used to manage and customize different AI assistants per user.
  */
-export const AgentSchema = pgTable("agent", {
+export const AgentSchema = pgTable("agents", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   description: text("description"),
@@ -78,7 +78,7 @@ export const AgentSchema = pgTable("agent", {
  * Each bookmark links a user to an item (agent or workflow), with unique and indexed constraints for efficient lookup and management.
  */
 export const BookmarkSchema = pgTable(
-  "bookmark",
+  "bookmarks",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     userId: uuid("user_id")
@@ -103,7 +103,7 @@ export const BookmarkSchema = pgTable(
  * Purpose: Stores configuration and metadata for Model Context Protocol (MCP) servers integrated by users.
  * Each record includes the server's name, configuration, enabled status, and timestamps for creation and updates.
  */
-export const McpServerSchema = pgTable("mcp_server", {
+export const McpServerSchema = pgTable("mcp_servers", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   config: json("config").notNull().$type<MCPServerConfig>(),
@@ -116,7 +116,7 @@ export const McpServerSchema = pgTable("mcp_server", {
  * Purpose: Stores user account information including name, email, password, profile image, preferences, and timestamps.
  * Used for authentication, authorization, and user profile management.
  */
-export const UserSchema = pgTable("user", {
+export const UserSchema = pgTable("users", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -133,7 +133,7 @@ export const UserSchema = pgTable("user", {
  * Each session includes a unique token, expiration, user reference, IP address, user agent, and timestamps.
  * Used for login sessions and session management.
  */
-export const SessionSchema = pgTable("session", {
+export const SessionSchema = pgTable("sessions", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
@@ -150,7 +150,7 @@ export const SessionSchema = pgTable("session", {
  * Purpose: Stores linked authentication accounts for users, including OAuth provider info, tokens, and expiration.
  * Used for social login, multi-provider authentication, and account management.
  */
-export const AccountSchema = pgTable("account", {
+export const AccountSchema = pgTable("accounts", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
@@ -173,7 +173,7 @@ export const AccountSchema = pgTable("account", {
  * password reset, or multi-factor authentication.
  * Includes identifier, value, expiration, and timestamps.
  */
-export const VerificationSchema = pgTable("verification", {
+export const VerificationSchema = pgTable("verifications", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
@@ -241,7 +241,7 @@ export const McpServerCustomizationSchema = pgTable(
  * Purpose: Stores user-created workflows, including metadata, version, icon, description, publication status, visibility, and ownership.
  * Used to manage and organize automated or multi-step processes.
  */
-export const WorkflowSchema = pgTable("workflow", {
+export const WorkflowSchema = pgTable("workflows", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   version: text("version").notNull().default("0.1.0"),
   name: text("name").notNull(),
@@ -267,7 +267,7 @@ export const WorkflowSchema = pgTable("workflow", {
  * Used to define the structure and behavior of automated or multi-step processes.
  */
 export const WorkflowNodeDataSchema = pgTable(
-  "workflow_node",
+  "workflow_nodes",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     version: text("version").notNull().default("0.1.0"),
@@ -297,7 +297,7 @@ export const WorkflowNodeDataSchema = pgTable(
  * Each edge links a source node to a target node within a workflow and can include UI configuration.
  * Used to define the structure and execution order of workflow processes.
  */
-export const WorkflowEdgeSchema = pgTable("workflow_edge", {
+export const WorkflowEdgeSchema = pgTable("workflow_edges", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   version: text("version").notNull().default("0.1.0"),
   workflowId: uuid("workflow_id")
@@ -319,7 +319,7 @@ export const WorkflowEdgeSchema = pgTable("workflow_edge", {
  * Each archive has a name, description, owner, and timestamps for creation and updates.
  * Used to help users manage and categorize their saved content.
  */
-export const ArchiveSchema = pgTable("archive", {
+export const ArchiveSchema = pgTable("archives", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   description: text("description"),
@@ -337,7 +337,7 @@ export const ArchiveSchema = pgTable("archive", {
  * Used to organize and manage the contents of user archives.
  */
 export const ArchiveItemSchema = pgTable(
-  "archive_item",
+  "archive_items",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     archiveId: uuid("archive_id")
@@ -358,7 +358,7 @@ export const ArchiveItemSchema = pgTable(
  * Used to manage and track OAuth authentication flows and sessions for secure access to external MCP servers.
  */
 export const McpOAuthSessionSchema = pgTable(
-  "mcp_oauth_session",
+  "mcp_oauth_sessions",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     mcpServerId: uuid("mcp_server_id")
@@ -384,7 +384,22 @@ export const McpOAuthSessionSchema = pgTable(
       .on(t.mcpServerId)
       .where(isNotNull(t.tokens)),
   ],
+
+
+
 );
+
+// Table: static_models
+export const staticModels = pgTable('static_models', {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 128 }).notNull().unique(),
+  apiKey: text('api_key').notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => UserSchema.id),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
