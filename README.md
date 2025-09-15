@@ -8,6 +8,7 @@ Create a `.env` file in the project root with the following keys:
 
 ```
 PORT=<YOUR_PORT>
+POSTGRES_URL=<YOUR_POSTGRES_URL>
 OPENAI_MODEL=<YOUR_OPENAI_MODEL>         # (optional, for developer)
 OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>     # (optional, for developer)
 ```

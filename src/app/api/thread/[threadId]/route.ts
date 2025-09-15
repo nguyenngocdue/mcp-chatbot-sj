@@ -56,12 +56,13 @@ export async function GET(
  * Returns 200 with { success: true } if deleted, 404 if not found, 403 if forbidden.
  * Requires: threadId in params, SESSION.user.id for permission check.
  */
+
 export async function DELETE(
   req: Request,
-  { params }: { params: { threadId: string } }
+  { params }: { params: Promise<{ threadId: string }> }
 ) {
   try {
-    const threadId = params.threadId;
+    const { threadId } = await params;
     if (!threadId) {
       return new Response(JSON.stringify({ error: 'Missing threadId' }), {
         status: 400,
