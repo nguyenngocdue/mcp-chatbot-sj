@@ -17,9 +17,16 @@ OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>     # (optional, for developer)
 Navigate to the project directory and run:
 
 ```bash
-cd mcp-chatbot-server/
+cd twin-editor-mcp/
+pnpm install
 pnpm dev
 ```
+
+After running the above command, the server will start at:
+http://localhost:8931
+(or the port you set in the `.env` file)
+```
+
 
 
 ### 3. Start PostgreSQL with Docker and Run Migrations
